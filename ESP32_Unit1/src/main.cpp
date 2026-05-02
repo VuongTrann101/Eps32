@@ -1,24 +1,40 @@
 #include <Arduino.h>
 
-#define LED 5
-#define BUTTON 4
+#define PIR_SENSOR 27
+#define LED 26
+#define TIMEOUT 5000
 
-int buttonState;
+bool motionDetected = false;
+bool startTime = false;
+unsigned long lastTime = 0;
+unsigned long nowTime = millis();
 
+void IRAM_ATTR detectCallback() {
+  digitalWrite(LED, HIGH);
+  startTime = true;
+  lastTime = millis();
+
+}
 void setup() {
+  Serial.begin(9600);
+  pinMode(PIR_SENSOR, INPUT_PULLUP);
+  pinMode(LED, OUTPUT);
+  digitalWrite(LED, LOW);
+  attachInterrupt(digitalPinToInterrupt(PIR_SENSOR), detectCallback, FALLING);
 
-pinMode(LED, OUTPUT);
-pinMode(BUTTON, INPUT);
- digitalWrite(LED, LOW);
 }
 
 void loop() {
-buttonState = digitalRead(BUTTON);
-if (buttonState == HIGH) {
-  digitalWrite(LED, HIGH);
-} else {
-  digitalWrite(LED, LOW);
-} 
+ nowTime = millis();
+ if (digitalRead(PIR_SENSOR) == LOW && motionDetected == false) {
+    Serial.println("Motion Detected!");
+    motionDetected = true;
+  } 
+  if (startTime && (nowTime - lastTime >= TIMEOUT)) {
+    digitalWrite(LED, LOW);
+    startTime = false;
+    motionDetected = false;
+    Serial.println("Motion Stopped!");
+  }
+ 
 }
-
-
